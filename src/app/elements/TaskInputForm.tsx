@@ -1,4 +1,7 @@
 import { useState } from 'react';
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type TaskInputFormProps = {
   onAddTask: (task: string, category: 'Home' | 'Work' | 'School', priority: 'High' | 'Medium' | 'Low') => void;
@@ -13,12 +16,12 @@ export default function TaskInputForm({ onAddTask }: TaskInputFormProps) {
     setTask(e.target.value);
   };
 
-  const handleCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setCategory(e.target.value as 'Home' | 'Work' | 'School');
+  const handleCategoryChange = (value: string) => {
+    setCategory(value as 'Home' | 'Work' | 'School');
   };
 
-  const handlePriorityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setPriority(e.target.value as 'High' | 'Medium' | 'Low');
+  const handlePriorityChange = (value: string) => {
+    setPriority(value as 'High' | 'Medium' | 'Low');
   };
 
   const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -30,38 +33,37 @@ export default function TaskInputForm({ onAddTask }: TaskInputFormProps) {
   };
 
   return (
-    <form onSubmit={handleFormSubmit} className="flex gap-4 mb-6">
-      <input
+    <form onSubmit={handleFormSubmit} className="flex gap-4 mb-6 items-center">
+      <Input
         type="text"
         value={task}
         onChange={handleInputChange}
         placeholder="Enter task"
-        className="px-4 py-2 border rounded shadow-sm focus:outline-none focus:ring focus:ring-blue-300"
+        className="flex-1"
       />
-      <select
-        value={category}
-        onChange={handleCategoryChange}
-        className="px-4 py-2 border rounded shadow-sm focus:outline-none focus:ring focus:ring-blue-300"
-      >
-        <option value="Home">Home</option>
-        <option value="Work">Work</option>
-        <option value="School">School</option>
-      </select>
-      <select
-        value={priority}
-        onChange={handlePriorityChange}
-        className="px-4 py-2 border rounded shadow-sm focus:outline-none focus:ring focus:ring-blue-300"
-      >
-        <option value="High">High</option>
-        <option value="Medium">Medium</option>
-        <option value="Low">Low</option>
-      </select>
-      <button
-        type="submit"
-        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-      >
+      <Select value={category} onValueChange={handleCategoryChange}>
+        <SelectTrigger className="w-32">
+          <SelectValue placeholder="Category" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="Home">Home</SelectItem>
+          <SelectItem value="Work">Work</SelectItem>
+          <SelectItem value="School">School</SelectItem>
+        </SelectContent>
+      </Select>
+      <Select value={priority} onValueChange={handlePriorityChange}>
+        <SelectTrigger className="w-32">
+          <SelectValue placeholder="Priority" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="High">High</SelectItem>
+          <SelectItem value="Medium">Medium</SelectItem>
+          <SelectItem value="Low">Low</SelectItem>
+        </SelectContent>
+      </Select>
+      <Button type="submit">
         Add Task
-      </button>
+      </Button>
     </form>
   );
 }

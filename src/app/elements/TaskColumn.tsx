@@ -1,13 +1,13 @@
-type Task = {
-  text: string;
-  category: string;
-  priority: string;
-};
+import { Task } from './Types';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
 type TaskColumnProps = {
   title: string;
   tasks: Task[];
-  onDeleteTask: (index: number) => void;
+  onDeleteTask: (taskText: string, category: 'Home' | 'Work' | 'School') => void;
 };
 
 export default function TaskColumn({ title, tasks, onDeleteTask }: TaskColumnProps) {
@@ -18,43 +18,62 @@ export default function TaskColumn({ title, tasks, onDeleteTask }: TaskColumnPro
   });
 
   return (
-    <div className="flex-1">
-      <h2 className="text-xl font-bold mb-4 text-black">{title}</h2>
-      <ul>
-        {sortedTasks.map((task, index) => (
-          <li
-            key={index}
-            className={`flex justify-between items-center p-2 bg-white rounded shadow mb-2 ${
-              task.priority === 'High'
-                ? 'border-red-500'
-                : task.priority === 'Medium'
-                ? 'border-yellow-500'
-                : ''
-            }`}
-          >
-            {task.text}<span className={`font-bold ${getPriorityColor(task.priority)}`}>{task.priority}</span>
-            <button
-              onClick={() => onDeleteTask(index)}
-              className="text-red-500 hover:text-red-700"
-            >
-              Remove
-            </button>
-          </li>
-        ))}
-      </ul>
-    </div>
+    <Card className="flex-1">
+      <CardHeader>
+        <CardTitle className="text-xl">{title}</CardTitle>
+        <Separator />
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {sortedTasks.length === 0 ? (
+          <p className="text-muted-foreground text-center py-4">No tasks yet</p>
+        ) : (
+          sortedTasks.map((task, index) => (
+            <Card key={index} className={`border-l-4 ${getBorderColor(task.priority)}`}>
+              <CardContent className="flex justify-between items-center p-4">
+                <div className="flex flex-col gap-2">
+                  <span className="font-medium">{task.text}</span>
+                  <Badge variant={getPriorityVariant(task.priority)} className="w-fit">
+                    {task.priority}
+                  </Badge>
+                </div>
+                <Button
+                  onClick={() => onDeleteTask(task.text, task.category)}
+                  variant="destructive"
+                  size="sm"
+                >
+                  Remove
+                </Button>
+              </CardContent>
+            </Card>
+          ))
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
-function getPriorityColor(priority: string): string {
+function getBorderColor(priority: string): string {
   switch (priority) {
     case "High":
-      return "text-red-500";
+      return "border-l-red-500";
     case "Medium":
-      return "text-yellow-500";
+      return "border-l-yellow-500";
     case "Low":
-      return "text-green-500";
+      return "border-l-green-500";
     default:
-      return "";
+      return "border-l-gray-300";
+  }
+}
+
+function getPriorityVariant(priority: string): "default" | "secondary" | "destructive" | "outline" {
+  switch (priority) {
+    case "High":
+      return "destructive";
+    case "Medium":
+      return "outline";
+    case "Low":
+      return "secondary";
+    default:
+      return "default";
   }
 }
