@@ -14,7 +14,7 @@ export default function Home() {
 
   const handleDeleteTask = (taskText: string, category: 'Home' | 'Work' | 'School') => {
     setTasksArray((prevTasksArray) => 
-      prevTasksArray.filter((task, index) => 
+      prevTasksArray.filter((task) => 
         !(task.text === taskText && task.category === category)
       )
     );
