@@ -33,35 +33,37 @@ export default function TaskInputForm({ onAddTask }: TaskInputFormProps) {
   };
 
   return (
-    <form onSubmit={handleFormSubmit} className="flex gap-4 mb-6 items-center">
+    <form onSubmit={handleFormSubmit} className="space-y-4 sm:space-y-0 sm:flex sm:gap-4 sm:items-center">
       <Input
         type="text"
         value={task}
         onChange={handleInputChange}
         placeholder="Enter task"
-        className="flex-1"
+        className="w-full sm:flex-1"
       />
-      <Select value={category} onValueChange={handleCategoryChange}>
-        <SelectTrigger className="w-32">
-          <SelectValue placeholder="Category" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="Home">Home</SelectItem>
-          <SelectItem value="Work">Work</SelectItem>
-          <SelectItem value="School">School</SelectItem>
-        </SelectContent>
-      </Select>
-      <Select value={priority} onValueChange={handlePriorityChange}>
-        <SelectTrigger className="w-32">
-          <SelectValue placeholder="Priority" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="High">High</SelectItem>
-          <SelectItem value="Medium">Medium</SelectItem>
-          <SelectItem value="Low">Low</SelectItem>
-        </SelectContent>
-      </Select>
-      <Button type="submit">
+      <div className="flex gap-3 sm:gap-4">
+        <Select value={category} onValueChange={handleCategoryChange}>
+          <SelectTrigger className="flex-1 sm:w-32">
+            <SelectValue placeholder="Category" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Home">🏠 Home</SelectItem>
+            <SelectItem value="Work">💼 Work</SelectItem>
+            <SelectItem value="School">🎓 School</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={priority} onValueChange={handlePriorityChange}>
+          <SelectTrigger className="flex-1 sm:w-32">
+            <SelectValue placeholder="Priority" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="High">🔴 High</SelectItem>
+            <SelectItem value="Medium">🟡 Medium</SelectItem>
+            <SelectItem value="Low">🟢 Low</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+      <Button type="submit" className="w-full sm:w-auto">
         Add Task
       </Button>
     </form>
