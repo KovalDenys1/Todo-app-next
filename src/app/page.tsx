@@ -12,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast, Toaster } from "sonner";
 import { loadSession, clearSession } from '@/lib/auth';
 import LoginPage from '@/components/LoginPage';
-import { LogOut, CheckCircle2, Circle } from 'lucide-react';
+import { LogOut, CheckCircle2, Circle, Search } from 'lucide-react';
 
 // ============================================================================
 // TYPES
@@ -50,6 +50,15 @@ const PRIORITIES = [
   { value: 'Medium' as Priority, label: 'Medium', icon: '🟡', color: 'border-l-yellow-500', variant: 'outline' as const, order: 2 },
   { value: 'Low' as Priority, label: 'Low', icon: '🟢', color: 'border-l-green-500', variant: 'secondary' as const, order: 3 },
 ] as const;
+
+type FilterType = 'all' | 'completed' | 'active' | 'high';
+
+const FILTER_OPTIONS: { value: FilterType; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'active', label: 'Active' },
+  { value: 'high', label: 'High Priority' },
+];
 
 // ============================================================================
 // UTILITY FUNCTIONS
@@ -345,6 +354,8 @@ export default function Home() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
 
   useEffect(() => {
     const session = loadSession();
@@ -431,6 +442,25 @@ export default function Home() {
   const completedTasks = tasksArray.filter(t => t.completed).length;
   const overallProgress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
+  // Apply search and filter to tasks
+  const filteredTasks = tasksArray.filter((task) => {
+    // Search filter
+    if (searchQuery.trim() && !task.text.toLowerCase().includes(searchQuery.toLowerCase())) {
+      return false;
+    }
+    // Status/level filter
+    switch (activeFilter) {
+      case 'completed':
+        return task.completed;
+      case 'active':
+        return !task.completed;
+      case 'high':
+        return task.priority === 'High';
+      default:
+        return true;
+    }
+  });
+
   return (
     <>
       <Toaster position="top-right" richColors closeButton />
@@ -487,13 +517,40 @@ export default function Home() {
           <div className="mb-6 sm:mb-8">
             <TaskInputForm onAddTask={handleAddTask} />
           </div>
+
+          <div className="mb-6 sm:mb-8">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search tasks..."
+                  className="pl-9"
+                />
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                {FILTER_OPTIONS.map(option => (
+                  <Button
+                    key={option.value}
+                    variant={activeFilter === option.value ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setActiveFilter(option.value)}
+                  >
+                    {option.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {CATEGORIES.map(category => (
               <TaskColumn
                 key={category.value}
                 title={`${category.icon} ${category.label}`}
-                tasks={tasksArray.filter((task) => task.category === category.value)}
+                tasks={filteredTasks.filter((task) => task.category === category.value)}
                 onDeleteTask={handleDeleteTask}
                 onEditTask={handleEditTask}
                 onToggleComplete={handleToggleComplete}
