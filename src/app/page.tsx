@@ -24,6 +24,7 @@ type Priority = 'High' | 'Medium' | 'Low';
 type Task = {
   id: string;
   text: string;
+  notes?: string;
   category: Category;
   priority: Priority;
   completed: boolean;
@@ -71,10 +72,11 @@ const loadTasks = (username: string): Task[] => {
     if (savedTasks) {
       const parsed = JSON.parse(savedTasks);
       if (Array.isArray(parsed)) {
-        return parsed.filter((task): task is Task => 
-          task && 
+        return parsed.filter((task): task is Task =>
+          task &&
           typeof task.id === 'string' &&
-          typeof task.text === 'string' && 
+          typeof task.text === 'string' &&
+          (task.notes === undefined || typeof task.notes === 'string') &&
           ['Home', 'Work', 'School'].includes(task.category) &&
           ['High', 'Medium', 'Low'].includes(task.priority)
         ).map(task => ({
@@ -99,60 +101,72 @@ const getPriorityConfig = (priority: Priority) => {
 // ============================================================================
 
 type TaskInputFormProps = {
-  onAddTask: (task: string, category: Category, priority: Priority) => void;
+  onAddTask: (task: string, notes: string, category: Category, priority: Priority) => void;
 };
 
 function TaskInputForm({ onAddTask }: TaskInputFormProps) {
   const [task, setTask] = useState('');
+  const [notes, setNotes] = useState('');
   const [category, setCategory] = useState<Category>('Home');
   const [priority, setPriority] = useState<Priority>('Medium');
 
   const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (task.trim()) {
-      onAddTask(task, category, priority);
+      onAddTask(task, notes, category, priority);
       setTask('');
+      setNotes('');
     }
   };
 
   return (
-    <form onSubmit={handleFormSubmit} className="space-y-4 sm:space-y-0 sm:flex sm:gap-4 sm:items-center">
-      <Input
-        type="text"
-        value={task}
-        onChange={(e) => setTask(e.target.value)}
-        placeholder="Enter task"
-        className="w-full sm:flex-1"
-      />
-      <div className="flex gap-3 sm:gap-4">
-        <Select value={category} onValueChange={(value) => setCategory(value as Category)}>
-          <SelectTrigger className="flex-1 sm:w-32">
-            <SelectValue placeholder="Category" />
-          </SelectTrigger>
-          <SelectContent>
-            {CATEGORIES.map(cat => (
-              <SelectItem key={cat.value} value={cat.value}>
-                {cat.icon} {cat.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={priority} onValueChange={(value) => setPriority(value as Priority)}>
-          <SelectTrigger className="flex-1 sm:w-32">
-            <SelectValue placeholder="Priority" />
-          </SelectTrigger>
-          <SelectContent>
-            {PRIORITIES.map(pri => (
-              <SelectItem key={pri.value} value={pri.value}>
-                {pri.icon} {pri.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+    <form onSubmit={handleFormSubmit} className="space-y-4">
+      <div className="space-y-3">
+        <Input
+          type="text"
+          value={task}
+          onChange={(e) => setTask(e.target.value)}
+          placeholder="Enter task name"
+          className="w-full"
+        />
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder="Enter task notes (optional)"
+          className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 resize-none font-sans"
+        />
       </div>
-      <Button type="submit" className="w-full sm:w-auto">
-        Add Task
-      </Button>
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center">
+        <div className="flex gap-3 flex-1">
+          <Select value={category} onValueChange={(value) => setCategory(value as Category)}>
+            <SelectTrigger className="flex-1">
+              <SelectValue placeholder="Category" />
+            </SelectTrigger>
+            <SelectContent>
+              {CATEGORIES.map(cat => (
+                <SelectItem key={cat.value} value={cat.value}>
+                  {cat.icon} {cat.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={priority} onValueChange={(value) => setPriority(value as Priority)}>
+            <SelectTrigger className="flex-1">
+              <SelectValue placeholder="Priority" />
+            </SelectTrigger>
+            <SelectContent>
+              {PRIORITIES.map(pri => (
+                <SelectItem key={pri.value} value={pri.value}>
+                  {pri.icon} {pri.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <Button type="submit" className="w-full sm:w-auto px-8">
+          Add Task
+        </Button>
+      </div>
     </form>
   );
 }
@@ -165,13 +179,14 @@ type TaskColumnProps = {
   title: string;
   tasks: Task[];
   onDeleteTask: (taskId: string) => void;
-  onEditTask: (taskId: string, newText: string) => void;
+  onEditTask: (taskId: string, newText: string, newNotes: string) => void;
   onToggleComplete: (taskId: string) => void;
 };
 
 function TaskColumn({ title, tasks, onDeleteTask, onEditTask, onToggleComplete }: TaskColumnProps) {
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
+  const [editNotesValue, setEditNotesValue] = useState('');
 
   const completedCount = tasks.filter(t => t.completed).length;
   const totalCount = tasks.length;
@@ -187,19 +202,22 @@ function TaskColumn({ title, tasks, onDeleteTask, onEditTask, onToggleComplete }
   const startEditing = (task: Task) => {
     setEditingTaskId(task.id);
     setEditValue(task.text);
+    setEditNotesValue(task.notes || '');
   };
 
   const saveEdit = (taskId: string) => {
     if (editValue.trim()) {
-      onEditTask(taskId, editValue.trim());
+      onEditTask(taskId, editValue.trim(), editNotesValue.trim());
     }
     setEditingTaskId(null);
     setEditValue('');
+    setEditNotesValue('');
   };
 
   const cancelEdit = () => {
     setEditingTaskId(null);
     setEditValue('');
+    setEditNotesValue('');
   };
 
   return (
@@ -255,14 +273,28 @@ function TaskColumn({ title, tasks, onDeleteTask, onEditTask, onToggleComplete }
                             value={editValue}
                             onChange={(e) => setEditValue(e.target.value)}
                             onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
+                              if (e.key === 'Enter' && !e.shiftKey) {
                                 saveEdit(task.id);
                               } else if (e.key === 'Escape') {
                                 cancelEdit();
                               }
                             }}
+                            placeholder="Task name"
                             className="text-sm sm:text-base"
                             autoFocus
+                          />
+                          <textarea
+                            value={editNotesValue}
+                            onChange={(e) => setEditNotesValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                                saveEdit(task.id);
+                              } else if (e.key === 'Escape') {
+                                cancelEdit();
+                              }
+                            }}
+                            placeholder="Task notes (optional)"
+                            className="flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 resize-none font-sans"
                           />
                           <div className="flex gap-2">
                             <Button
@@ -284,13 +316,24 @@ function TaskColumn({ title, tasks, onDeleteTask, onEditTask, onToggleComplete }
                         </div>
                       ) : (
                         <div>
-                          <span 
-                            className={`font-medium text-sm sm:text-base break-words cursor-pointer hover:text-primary transition-colors ${task.completed ? 'line-through text-muted-foreground' : ''}`}
-                            onDoubleClick={() => startEditing(task)}
-                            title="Double-click to edit"
-                          >
-                            {task.text}
-                          </span>
+                          <div className="flex flex-col">
+                            <span
+                              className={`font-medium text-sm sm:text-base break-words cursor-pointer hover:text-primary transition-colors ${task.completed ? 'line-through text-muted-foreground' : ''}`}
+                              onDoubleClick={() => startEditing(task)}
+                              title="Double-click to edit"
+                            >
+                              {task.text}
+                            </span>
+                            {task.notes && (
+                              <p
+                                className={`text-xs text-muted-foreground whitespace-pre-wrap break-words line-clamp-3 mt-1.5 cursor-pointer hover:text-primary transition-colors ${task.completed ? 'line-through' : ''}`}
+                                onDoubleClick={() => startEditing(task)}
+                                title="Double-click to edit"
+                              >
+                                {task.notes}
+                              </p>
+                            )}
+                          </div>
                           <div className="mt-2 flex gap-2 items-center">
                             <Badge variant={priorityConfig.variant} className="text-xs">
                               {priorityConfig.icon} {priorityConfig.label}
@@ -381,11 +424,12 @@ export default function Home() {
     toast.info('Logged out successfully');
   };
 
-  const handleAddTask = (text: string, category: Category, priority: Priority) => {
-    const newTask: Task = { 
-      id: crypto.randomUUID(), 
-      text, 
-      category, 
+  const handleAddTask = (text: string, notes: string, category: Category, priority: Priority) => {
+    const newTask: Task = {
+      id: crypto.randomUUID(),
+      text,
+      notes: notes.trim() || undefined,
+      category,
       priority,
       completed: false,
       createdAt: Date.now()
@@ -399,10 +443,10 @@ export default function Home() {
     toast.success('Task deleted');
   };
 
-  const handleEditTask = (taskId: string, newText: string) => {
-    setTasksArray((prev) => 
-      prev.map((task) => 
-        task.id === taskId ? { ...task, text: newText } : task
+  const handleEditTask = (taskId: string, newText: string, newNotes: string) => {
+    setTasksArray((prev) =>
+      prev.map((task) =>
+        task.id === taskId ? { ...task, text: newText, notes: newNotes.trim() || undefined } : task
       )
     );
     toast.success('Task updated');
