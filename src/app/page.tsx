@@ -12,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast, Toaster } from "sonner";
 import { loadSession, clearSession } from '@/lib/auth';
 import LoginPage from '@/components/LoginPage';
-import { LogOut, CheckCircle2, Circle } from 'lucide-react';
+import { LogOut, CheckCircle2, Circle, Clock, AlertTriangle } from 'lucide-react';
 
 // ============================================================================
 // TYPES
@@ -28,6 +28,7 @@ type Task = {
   priority: Priority;
   completed: boolean;
   createdAt: number;
+  dueDate?: number;
 };
 
 // ============================================================================
@@ -80,7 +81,8 @@ const loadTasks = (username: string): Task[] => {
         ).map(task => ({
           ...task,
           completed: task.completed ?? false,
-          createdAt: task.createdAt ?? Date.now()
+          createdAt: task.createdAt ?? Date.now(),
+          dueDate: task.dueDate ?? undefined
         }));
       }
     }
@@ -94,24 +96,44 @@ const getPriorityConfig = (priority: Priority) => {
   return PRIORITIES.find(p => p.value === priority) || PRIORITIES[1];
 };
 
+const formatDateForInput = (timestamp: number): string => {
+  const date = new Date(timestamp);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const formatDateForDisplay = (timestamp: number): string => {
+  const date = new Date(timestamp);
+  return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
+};
+
+const isOverdue = (dueDate: number): boolean => {
+  return new Date().getTime() > dueDate;
+};
+
 // ============================================================================
 // TASK INPUT FORM COMPONENT
 // ============================================================================
 
 type TaskInputFormProps = {
-  onAddTask: (task: string, category: Category, priority: Priority) => void;
+  onAddTask: (task: string, category: Category, priority: Priority, dueDate?: number) => void;
 };
 
 function TaskInputForm({ onAddTask }: TaskInputFormProps) {
   const [task, setTask] = useState('');
   const [category, setCategory] = useState<Category>('Home');
   const [priority, setPriority] = useState<Priority>('Medium');
+  const [dueDate, setDueDate] = useState('');
 
   const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (task.trim()) {
-      onAddTask(task, category, priority);
+      const dueDateTimestamp = dueDate ? new Date(dueDate + 'T23:59:59').getTime() : undefined;
+      onAddTask(task, category, priority, dueDateTimestamp);
       setTask('');
+      setDueDate('');
     }
   };
 
@@ -149,6 +171,12 @@ function TaskInputForm({ onAddTask }: TaskInputFormProps) {
             ))}
           </SelectContent>
         </Select>
+        <Input
+          type="date"
+          value={dueDate}
+          onChange={(e) => setDueDate(e.target.value)}
+          className="flex-1 sm:w-36"
+        />
       </div>
       <Button type="submit" className="w-full sm:w-auto">
         Add Task
@@ -165,13 +193,14 @@ type TaskColumnProps = {
   title: string;
   tasks: Task[];
   onDeleteTask: (taskId: string) => void;
-  onEditTask: (taskId: string, newText: string) => void;
+  onEditTask: (taskId: string, newText: string, dueDate?: number) => void;
   onToggleComplete: (taskId: string) => void;
 };
 
 function TaskColumn({ title, tasks, onDeleteTask, onEditTask, onToggleComplete }: TaskColumnProps) {
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
+  const [editDueDate, setEditDueDate] = useState('');
 
   const completedCount = tasks.filter(t => t.completed).length;
   const totalCount = tasks.length;
@@ -187,19 +216,23 @@ function TaskColumn({ title, tasks, onDeleteTask, onEditTask, onToggleComplete }
   const startEditing = (task: Task) => {
     setEditingTaskId(task.id);
     setEditValue(task.text);
+    setEditDueDate(task.dueDate ? formatDateForInput(task.dueDate) : '');
   };
 
   const saveEdit = (taskId: string) => {
     if (editValue.trim()) {
-      onEditTask(taskId, editValue.trim());
+      const dueDateTimestamp = editDueDate ? new Date(editDueDate + 'T23:59:59').getTime() : undefined;
+      onEditTask(taskId, editValue.trim(), dueDateTimestamp);
     }
     setEditingTaskId(null);
     setEditValue('');
+    setEditDueDate('');
   };
 
   const cancelEdit = () => {
     setEditingTaskId(null);
     setEditValue('');
+    setEditDueDate('');
   };
 
   return (
@@ -264,6 +297,14 @@ function TaskColumn({ title, tasks, onDeleteTask, onEditTask, onToggleComplete }
                             className="text-sm sm:text-base"
                             autoFocus
                           />
+                          <div className="flex gap-2 items-center">
+                            <Input
+                              type="date"
+                              value={editDueDate}
+                              onChange={(e) => setEditDueDate(e.target.value)}
+                              className="text-xs sm:w-40"
+                            />
+                          </div>
                           <div className="flex gap-2">
                             <Button
                               onClick={() => saveEdit(task.id)}
@@ -291,10 +332,22 @@ function TaskColumn({ title, tasks, onDeleteTask, onEditTask, onToggleComplete }
                           >
                             {task.text}
                           </span>
-                          <div className="mt-2 flex gap-2 items-center">
+                          <div className="mt-2 flex gap-2 items-center flex-wrap">
                             <Badge variant={priorityConfig.variant} className="text-xs">
                               {priorityConfig.icon} {priorityConfig.label}
                             </Badge>
+                            {task.dueDate && (
+                              <Badge variant="outline" className="text-xs">
+                                <Clock className="h-3 w-3 mr-1" />
+                                {formatDateForDisplay(task.dueDate)}
+                              </Badge>
+                            )}
+                            {task.dueDate && !task.completed && isOverdue(task.dueDate) && (
+                              <Badge variant="destructive" className="text-xs">
+                                <AlertTriangle className="h-3 w-3 mr-1" />
+                                Overdue
+                              </Badge>
+                            )}
                             {task.completed && (
                               <Badge variant="outline" className="text-xs">
                                 <CheckCircle2 className="h-3 w-3 mr-1" />
@@ -381,14 +434,15 @@ export default function Home() {
     toast.info('Logged out successfully');
   };
 
-  const handleAddTask = (text: string, category: Category, priority: Priority) => {
+  const handleAddTask = (text: string, category: Category, priority: Priority, dueDate?: number) => {
     const newTask: Task = { 
       id: crypto.randomUUID(), 
       text, 
       category, 
       priority,
       completed: false,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      dueDate
     };
     setTasksArray((prev) => [...prev, newTask]);
     toast.success('Task added successfully!');
@@ -399,10 +453,10 @@ export default function Home() {
     toast.success('Task deleted');
   };
 
-  const handleEditTask = (taskId: string, newText: string) => {
+  const handleEditTask = (taskId: string, newText: string, dueDate?: number) => {
     setTasksArray((prev) => 
       prev.map((task) => 
-        task.id === taskId ? { ...task, text: newText } : task
+        task.id === taskId ? { ...task, text: newText, dueDate } : task
       )
     );
     toast.success('Task updated');
