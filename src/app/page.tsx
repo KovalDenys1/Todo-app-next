@@ -12,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast, Toaster } from "sonner";
 import { loadSession, clearSession } from '@/lib/auth';
 import LoginPage from '@/components/LoginPage';
-import { LogOut, CheckCircle2, Circle } from 'lucide-react';
+import { LogOut, CheckCircle2, Circle, ListTodo, BarChart3, AlertCircle } from 'lucide-react';
 
 // ============================================================================
 // TYPES
@@ -429,6 +429,7 @@ export default function Home() {
 
   const totalTasks = tasksArray.length;
   const completedTasks = tasksArray.filter(t => t.completed).length;
+  const uncompletedTasks = totalTasks - completedTasks;
   const overallProgress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   return (
@@ -457,32 +458,44 @@ export default function Home() {
             </div>
           </div>
 
-          {totalTasks > 0 && (
-            <Card className="mb-6 sm:mb-8">
-              <CardContent className="pt-6">
-                <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-                  <div className="text-center sm:text-left">
-                    <h3 className="text-lg font-semibold mb-1">Overall Progress</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {completedTasks} of {totalTasks} tasks completed
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-center">
-                      <div className="text-3xl font-bold">{overallProgress}%</div>
-                      <div className="text-xs text-muted-foreground">Complete</div>
-                    </div>
-                  </div>
+          {/* Task Statistics Dashboard */}
+          <Card className="mb-6 sm:mb-8">
+            <CardContent className="pt-6">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                Task Statistics
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg p-4 text-center">
+                  <ListTodo className="h-6 w-6 mx-auto mb-1 text-blue-500" />
+                  <div className="text-2xl font-bold">{totalTasks}</div>
+                  <div className="text-xs text-muted-foreground">Total Tasks</div>
                 </div>
-                <div className="w-full bg-secondary rounded-full h-3 mt-4">
-                  <div 
+                <div className="bg-green-50 dark:bg-green-950/30 rounded-lg p-4 text-center">
+                  <CheckCircle2 className="h-6 w-6 mx-auto mb-1 text-green-500" />
+                  <div className="text-2xl font-bold">{completedTasks}</div>
+                  <div className="text-xs text-muted-foreground">Completed</div>
+                </div>
+                <div className="bg-orange-50 dark:bg-orange-950/30 rounded-lg p-4 text-center">
+                  <AlertCircle className="h-6 w-6 mx-auto mb-1 text-orange-500" />
+                  <div className="text-2xl font-bold">{uncompletedTasks}</div>
+                  <div className="text-xs text-muted-foreground">Uncompleted</div>
+                </div>
+              </div>
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-sm text-muted-foreground">Completion Rate</span>
+                  <span className="text-sm font-semibold">{totalTasks > 0 ? overallProgress : 0}%</span>
+                </div>
+                <div className="w-full bg-secondary rounded-full h-3">
+                  <div
                     className="bg-primary h-3 rounded-full transition-all duration-500"
-                    style={{ width: `${overallProgress}%` }}
+                    style={{ width: `${totalTasks > 0 ? overallProgress : 0}%` }}
                   />
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              </div>
+            </CardContent>
+          </Card>
           
           <div className="mb-6 sm:mb-8">
             <TaskInputForm onAddTask={handleAddTask} />
